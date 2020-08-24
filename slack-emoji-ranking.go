@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"time"
 )
 
 var (
@@ -51,6 +52,7 @@ func main() {
 		wg.Add(1)
 		fmt.Println(c.ID, c.Name)
 		total.makeChannelInc(c.Name)
+		time.Sleep(1500 * time.Millisecond)
 		go GetChannelHistory(token, c.ID, c.Name, &total, &wg)
 	}
 
@@ -70,26 +72,8 @@ func main() {
 	for idx, entry := range orderTotal {
 		text += fmt.Sprintf("%v :%s: %v\n", idx+1, entry.name, entry.value)
 		i++
-		if i == 20 {
+		if i == 10 {
 			break
-		}
-	}
-	for c, cv := range total.c {
-		var order = List{}
-		for k, v := range cv {
-			e := Entry{k, v}
-			order = append(order, e)
-		}
-		sort.Sort(order)
-
-		text += fmt.Sprintf("\n#%s\n", c)
-		var i = 0
-		for idx, entry := range order {
-			text += fmt.Sprintf("%v :%s: %v\n", idx+1, entry.name, entry.value)
-			i++
-			if i == 5 {
-				break
-			}
 		}
 	}
 	fmt.Println(text)

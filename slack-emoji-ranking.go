@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"strconv"
 )
 
 var (
@@ -48,12 +49,14 @@ func main() {
 	wg := sync.WaitGroup{}
 
 	total.c = make(map[string]map[string]int)
+	t := time.Now()
+	oldest := strconv.FormatInt(t.AddDate(0, 0, -1).Unix(), 10)
 	for _, c := range channelList.Channels {
 		wg.Add(1)
 		fmt.Println(c.ID, c.Name)
 		total.makeChannelInc(c.Name)
-		time.Sleep(1500 * time.Millisecond)
-		go GetChannelHistory(token, c.ID, c.Name, &total, &wg)
+		time.Sleep(1280 * time.Millisecond)
+		go GetChannelHistory(token, c.ID, c.Name, oldest,  &total, &wg)
 	}
 
 	wg.Wait()
@@ -67,12 +70,12 @@ func main() {
 	sort.Sort(orderTotal)
 
 	var text string
-	text += fmt.Sprintf("Total\n")
+	text += fmt.Sprintf("本日のemoji集計\n")
 	var i = 0
 	for idx, entry := range orderTotal {
 		text += fmt.Sprintf("%v :%s: %v\n", idx+1, entry.name, entry.value)
 		i++
-		if i == 10 {
+		if i == 20 {
 			break
 		}
 	}
@@ -88,14 +91,15 @@ func main() {
 	sendMessage(token, text, channel)
 }
 
-func GetChannelHistory(token string, channelID string, channelName string, total *SafeCounter, wg *sync.WaitGroup) error {
+func GetChannelHistory(token string, channelID string, channelName string, oldest string, total *SafeCounter, wg *sync.WaitGroup) error {
 	defer wg.Done()
 
 	values := url.Values{}
 	values.Set("token", token)
 	values.Add("channel", channelID)
 	values.Add("count", "1000")
-
+	values.Add("oldest", oldest)
+	fmt.Printf("%v\n", apiUrl2 + "?" + values.Encode())
 	resp, err := http.Get(apiUrl2 + "?" + values.Encode())
 	if err != nil {
 		fmt.Println(err)
@@ -129,6 +133,8 @@ func sendMessage(token string, text string, channel string) {
 	data.Set("token", token)
 	data.Add("channel", "#"+channel)
 	data.Add("text", text)
+	data.Add("icon_emoji", ":slackbot_doya:")
+	data.Add("username", "emoji集計人")
 
 	client := &http.Client{}
 	r, _ := http.NewRequest("POST", fmt.Sprintf("%s", apiUrl3), bytes.NewBufferString(data.Encode()))
